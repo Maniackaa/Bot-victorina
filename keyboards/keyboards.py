@@ -14,26 +14,16 @@ def custom_kb(width: int, buttons_dict: dict) -> InlineKeyboardMarkup:
     kb_builder.row(*buttons, width=width)
     return kb_builder.as_markup()
 
-
-start_kb_b = {
-    'Аналитика': 'analyse',
-    'Компании': 'comp',
-    'Помощь': 'help',
-
-}
-
-demo_start_kb_b = {
-    'Анализ сотрудника': 'analyse',
-}
-
-start_kb = custom_kb(1, start_kb_b)
-demo_start_kb = custom_kb(1, demo_start_kb_b)
-
-kb_builder: ReplyKeyboardBuilder = ReplyKeyboardBuilder()
-kb_list = [val for val in start_kb_b.keys()]
-buttons: list[KeyboardButton] = [KeyboardButton(text=key) for key in kb_list]
+kb_builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
+begin_btn = InlineKeyboardButton(
+    text='Учавствовать',
+    url='https://t.me/OlditBot'
+)
+buttons = [begin_btn]
 kb_builder.row(*buttons, width=1)
-menu_kb = kb_builder.as_markup(resize_keyboard=True)
+begin_kb = kb_builder.as_markup()
+
+
 
 contact_kb_buttons = [
     [KeyboardButton(
@@ -45,28 +35,6 @@ contact_kb_buttons = [
 contact_kb: ReplyKeyboardMarkup = ReplyKeyboardMarkup(
     keyboard=contact_kb_buttons,
     resize_keyboard=True)
-
-
-kb = [
-    [KeyboardButton(text="/start")],
-    ]
-not_auth_start_kb: ReplyKeyboardMarkup = ReplyKeyboardMarkup(
-    keyboard=kb,
-    resize_keyboard=True)
-
-kb = [
-    [KeyboardButton(text="Анализ сотрудника")],
-    ]
-auth_start_kb: ReplyKeyboardMarkup = ReplyKeyboardMarkup(
-    keyboard=kb,
-    resize_keyboard=True)
-
-# analyse_list = ['Проанализировать сотрудника', 'Проверить совместимость с контрагентом', 'Принять бизнес решение', 'Назад']
-analyse_list = ['Проанализировать сотрудника', 'Проверить совместимость с контрагентом', 'Назад']
-buttons: list[KeyboardButton] = [KeyboardButton(text=key) for key in analyse_list]
-kb_builder: ReplyKeyboardBuilder = ReplyKeyboardBuilder()
-kb_builder.row(*buttons, width=1)
-analyse_menu_kb = kb_builder.as_markup(resize_keyboard=True)
 
 
 def kb_from_list(kb_buttons, width=1, back='Назад'):

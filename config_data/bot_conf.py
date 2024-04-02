@@ -7,8 +7,8 @@ from pathlib import Path
 import structlog as structlog
 from dotenv import load_dotenv
 from structlog.dev import ConsoleRenderer
-from structlog.processors import JSONRenderer
-from structlog.typing import WrappedLogger
+from structlog.processors import JSONRenderer, CallsiteParameter
+from structlog.typing import WrappedLogger, EventDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -143,19 +143,60 @@ tz = config.tg_bot.TIMEZONE
 # print(conf.tg_bot.admin_ids)
 
 
+# def get_my_loggers():
+#     import logging.config
+#     logging.config.dictConfig(LOGGING_CONFIG)
+#
+#     def get_renderer():
+#         if True:
+#             return ConsoleRenderer()
+#         return JSONRenderer()
+#
+#     def get_factory():
+#         if True:
+#             return structlog.PrintLoggerFactory()
+#         return structlog.WriteLoggerFactory(file=Path("app").with_suffix(".log").open("wt"))
+#
+#     structlog.configure(
+#         processors=[
+#             structlog.contextvars.merge_contextvars,
+#             structlog.processors.add_log_level,
+#             structlog.processors.StackInfoRenderer(),
+#             structlog.dev.set_exc_info,
+#             structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+#             structlog.dev.ConsoleRenderer(colors=True),
+#
+#
+#         ],
+#         wrapper_class=structlog.make_filtering_bound_logger(logging.NOTSET),
+#         context_class=dict,
+#         logger_factory=structlog.PrintLoggerFactory(),
+#         cache_logger_on_first_use=False
+#     )
+#     logger = structlog.get_logger()
+#     # logger: structlog.stdlib.BoundLogger = structlog.get_logger()
+#     # return logging.getLogger('bot_logger'), logging.getLogger('errors_logger')
+#     return logger, logger
+
+
 def get_my_loggers():
-    import logging.config
-    logging.config.dictConfig(LOGGING_CONFIG)
+    class LogJump:
+        def __init__(
+            self,
+            full_path: bool = False,
+        ) -> None:
+            self.full_path = full_path
 
-    def get_renderer():
-        if True:
-            return ConsoleRenderer()
-        return JSONRenderer()
+        def __call__(
+            self, logger: WrappedLogger, name: str, event_dict: EventDict
+        ) -> EventDict:
+            if self.full_path:
+                file_part = "\n" + event_dict.pop("pathname")
+            else:
+                file_part = event_dict.pop("filename")
+            event_dict["location"] = f'"{file_part}:{event_dict.pop("lineno")}"'
 
-    def get_factory():
-        if True:
-            return structlog.PrintLoggerFactory()
-        return structlog.WriteLoggerFactory(file=Path("app").with_suffix(".log").open("wt"))
+            return event_dict
 
     structlog.configure(
         processors=[
@@ -164,17 +205,21 @@ def get_my_loggers():
             structlog.processors.StackInfoRenderer(),
             structlog.dev.set_exc_info,
             structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-            structlog.dev.ConsoleRenderer(colors=True),
+            structlog.processors.CallsiteParameterAdder(
+                [
+                    # add either pathname or filename and then set full_path to True or False in LogJump below
+                    # structlog.processors.CallsiteParameter.PATHNAME,
+                    structlog.processors.CallsiteParameter.FILENAME,
+                    structlog.processors.CallsiteParameter.LINENO,
+                ],
+            ),
+            LogJump(full_path=False),
+            structlog.dev.ConsoleRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(logging.NOTSET),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
-        cache_logger_on_first_use=False
+        cache_logger_on_first_use=False,
     )
-    logger = structlog.get_logger()
-    # logger: structlog.stdlib.BoundLogger = structlog.get_logger()
-    # return logging.getLogger('bot_logger'), logging.getLogger('errors_logger')
+    logger = structlog.stdlib.get_logger()
     return logger, logger
-
-
-

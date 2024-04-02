@@ -142,7 +142,7 @@ dmypy.json
 
 media/
 .media
-
+!.media/no_image.jpg
 # FRONTEND
 
 # dependencies
