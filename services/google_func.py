@@ -36,7 +36,7 @@ async def load_range_values(url=config.tg_bot.TABLE_1, sheets_num=0, diap='А:A'
 
 
 async def write_to_table(rows: list[list], start_row=1, from_start=False, url=config.tg_bot.TABLE_1,
-                          sheets_num=0, delta_col=0):
+                          sheets_num=0, delta_col=0, insert_rows=0):
     """Запись строк в гугл-таблицу
     :param rows: список строк для вставки
     :param start_row: Номер первой строки
@@ -44,6 +44,7 @@ async def write_to_table(rows: list[list], start_row=1, from_start=False, url=co
     :param url: адрес таблицы
     :param sheets_num: номер листа
     :param delta_col: смещение по столбцам
+    :insert_rows: вставить пустых строк в начало
     :return:
     """
     try:
@@ -57,7 +58,8 @@ async def write_to_table(rows: list[list], start_row=1, from_start=False, url=co
         # await table.append_rows(rows)
         num_rows = len(rows)
         num_col = len(rows[0])
-
+        if insert_rows:
+            await table.insert_rows([[''] for x in range(insert_rows)])
         if from_start:
             logger.debug(f'Вписываем в начало: {len(rows)} строк')
             await table.insert_rows(values=rows[::-1], row=2)
@@ -106,6 +108,9 @@ async def main():
     #     print(key, type(key))
         # if key == '1245785663':
         #     print(val)
+    # print([[''] for x in range(5)])
+    await write_to_table([['wef']], insert_rows=5)
+
 
 if __name__ == '__main__':
     asyncio.run(main())

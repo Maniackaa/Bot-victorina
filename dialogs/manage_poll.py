@@ -270,11 +270,48 @@ async def input_name(message: Message, widget: ManagedTextInput, dialog_manager:
     await dialog_manager.next()
 
 
+async def input_description(message: Message, widget: ManagedTextInput, dialog_manager: DialogManager, text: str) -> None:
+    data = dialog_manager.dialog_data
+    logger.debug(f'input_description', text=text, dialog_data=data)
+    data.update(description=text.strip())
+    await dialog_manager.next()
+
+
+# async def input_duration(message: Message, widget: ManagedTextInput, dialog_manager: DialogManager, text: str) -> None:
+#     try:
+#         data = dialog_manager.dialog_data
+#         logger.debug(f'input_duration', text=text, dialog_data=data)
+#         duration = int(text)
+#         data.update(duration=duration)
+#         await dialog_manager.next()
+#     except Exception as err:
+#         logger.error(err)
+
+
+def duration_check(text: str):
+    try:
+        duration = int(text)
+        return text
+    except Exception as err:
+        raise ValueError
+
+
+async def error_duration_handler(
+        message: Message,
+        widget: ManagedTextInput,
+        dialog_manager: DialogManager,
+        error: ValueError):
+    await message.answer(
+        text='Вы ввели некорректое число. Попробуйте еще раз'
+    )
+
 async def create_new_victorine(message: Message, widget: ManagedTextInput, dialog_manager: DialogManager, text: str) -> None:
     data = dialog_manager.dialog_data
     logger.debug(f'create_new_victorine', text=text, dialog_data=data)
     name = data.get('new_name')
-    new_victorine = await get_or_create_victorine(name, text)
+    duration_hour = int(text)
+    description = data.get('description')
+    new_victorine = await get_or_create_victorine(name, description, duration_hour)
     await message.answer(f'Викторина <b>{new_victorine.name}</b> создана')
     await dialog_manager.next()
     await dialog_manager.switch_to(PollManageSG.start)
@@ -290,7 +327,7 @@ async def to_question_edit(callback: CallbackQuery, button: Button, dialog_manag
 
 
 async def to_victorine_create(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    await dialog_manager.switch_to(PollManageSG.create_voctorine_new_name)
+    await dialog_manager.switch_to(PollManageSG.create_victorine_new_name)
 
 
 async def to_victorine_rename(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -298,7 +335,7 @@ async def to_victorine_rename(callback: CallbackQuery, button: Button, dialog_ma
 
 
 async def to_victorine_change_description(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    await dialog_manager.switch_to(PollManageSG.victorine_description)
+    await dialog_manager.switch_to(PollManageSG.victorine_edit_description)
 
 
 async def to_add_image(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -332,7 +369,7 @@ manage_poll_dialog = Dialog(
             id='new_victorine_name',
             on_success=input_name,
         ),
-        state=PollManageSG.create_voctorine_new_name,
+        state=PollManageSG.create_victorine_new_name,
         getter=manage_poll_getter,
     ),
 
@@ -340,7 +377,20 @@ manage_poll_dialog = Dialog(
         Format(text='Введите описание викторины'),
         TextInput(
             id='new_victorine_description',
+            on_success=input_description,
+            on_error=error_duration_handler,
+        ),
+        state=PollManageSG.victorine_description,
+        getter=manage_poll_getter,
+    ),
+
+    Window(
+        Format(text='Введите продолжительность викторины в часах'),
+        TextInput(
+            id='new_victorine_create',
+            type_factory=duration_check,
             on_success=create_new_victorine,
+            on_error=error_duration_handler,
         ),
         state=PollManageSG.create_victorine,
         getter=manage_poll_getter,
@@ -407,7 +457,7 @@ manage_poll_dialog = Dialog(
             id='new_description',
             on_success=victorine_new_description,
         ),
-        state=PollManageSG.victorine_description,
+        state=PollManageSG.victorine_edit_description,
         getter=manage_poll_getter,
     ),
     Window(

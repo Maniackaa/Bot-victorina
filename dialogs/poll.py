@@ -8,6 +8,7 @@ from aiogram_dialog.widgets.text import Format, Const
 
 from config_data.bot_conf import get_my_loggers
 from database.db import Question, Victorine
+from dialogs.launch_victorine import stop_victorine
 from services.db_func import get_victorine, get_or_create_user, is_first_poll, save_result
 from services.google_func import write_to_table, load_free_coupons
 from states.poll import PollSG
@@ -99,17 +100,21 @@ async def result_getter(dialog_manager: DialogManager, event_update, event_from_
     if is_first_poll(get_or_create_user(event_from_user), victorine.name):
         # await bot.send_message(chat_id=event_from_user.id, text='Первая')
         coupons = await load_free_coupons(victorine.name)
+
         for coupon in coupons:
             if coupon.score <= score:
                 await bot.send_message(chat_id=event_from_user.id,
                                        text=f'Вы выиграли купон на скидку {coupon.discont}%! <code>{coupon.code}</code>')
+                if len(coupons) <= 1:
+                    await stop_victorine(bot, victorine)
                 await write_to_table(rows=[[f'Выиграл {event_from_user.username or event_from_user.id}']],
                                      start_row=coupon.id + 1, delta_col=5, sheets_num=2)
+                break
 
     else:
         await bot.send_message(chat_id=event_from_user.id, text='Вы уже учавствовали в этой викторине.')
     result = save_result(user, victorine, window_text)
-    await write_to_table([[user.username or user.id, victorine.name, score, window_text]], sheets_num=1)
+    await write_to_table([[user.username or user.id, victorine.name, score, window_text]], sheets_num=1, insert_rows=1)
     logger.info(f'Результаты опроса: {data}')
     return {'result_text': window_text}
 

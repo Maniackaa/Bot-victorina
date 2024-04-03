@@ -98,7 +98,7 @@ def get_questions() -> list[Question]:
             return result.count()
 
 
-async def get_or_create_victorine(name, description=None) -> RowMapping | Victorine:
+async def get_or_create_victorine(name, description=None, duration=15) -> RowMapping | Victorine:
     try:
         session = Session()
         with session:
@@ -108,7 +108,7 @@ async def get_or_create_victorine(name, description=None) -> RowMapping | Victor
             if result:
                 logger.debug(f'Викторина уже есть в базе: {result}')
                 return result
-            new_victorine = Victorine(name=name, description=description)
+            new_victorine = Victorine(name=name, description=description, duration_hour=duration)
             session.add(new_victorine)
             session.commit()
             logger.debug(f'Витокрина создана: {new_victorine}')
@@ -232,6 +232,15 @@ def save_result(user: User, victorine: Victorine, text):
         session.commit()
         return result
 
+
+def get_victorine_to_stop():
+    all_vict = get_all_victorines()
+    for vict in all_vict:
+        if vict.victorine_stop_time and vict.victorine_stop_time > datetime.datetime.now():
+            logger.debug(f'Найдена виторина для остановки: {vict}')
+            return vict
+
+
 async def main():
     # test_victorine = await get_or_create_victorine('test')
     # print(test_victorine)
@@ -244,11 +253,11 @@ async def main():
     # print('-----------')
     # v = get_victorine()
     # print(v)
-    user = get_user_from_id(1)
-    print(user)
-    fp = is_first_poll(user, 'testv3ict')
-    print(fp)
-
+    # user = get_user_from_id(1)
+    # print(user)
+    # fp = is_first_poll(user, 'testv3ict')
+    # print(fp)
+    get_victorine_to_stop()
 
 if __name__ == '__main__':
     asyncio.run(main())

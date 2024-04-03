@@ -1,5 +1,7 @@
 import asyncio
+import time
 
+import aioschedule
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -11,9 +13,11 @@ from aiogram_dialog import setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
 
 from config_data.bot_conf import config, get_my_loggers
+from dialogs.launch_victorine import stop_victorine
 from handlers import admin_handlers
 from handlers.admin_handlers import on_unknown_intent
 from keyboards.keyboards import begin_kb
+from services.db_func import get_victorine_to_stop
 
 logger, err_log = get_my_loggers()
 
@@ -47,6 +51,19 @@ async def set_commands(bot: Bot, settings):
             logger.info(f'Админ id {admin_id}  ошибочен')
 
 
+async def job(bot):
+    vict = get_victorine_to_stop()
+    if vict:
+        await stop_victorine(bot, vict)
+
+
+async def shedulers(bot):
+    aioschedule.every().minute.do(job, bot)
+    while True:
+        await aioschedule.run_pending()
+        await asyncio.sleep(1)
+
+
 async def main():
 
     if config.tg_bot.USE_REDIS:
@@ -70,9 +87,10 @@ async def main():
         await set_commands(bot, config)
         # await bot.get_updates(offset=-1)
         await bot.delete_webhook(drop_pending_updates=True)
-        # await bot.send_message(chat_id=config.tg_bot.admin_ids[0], text='Бот запущен')
+        asyncio.create_task(shedulers(bot))
+        await bot.send_message(chat_id=config.tg_bot.admin_ids[0], text='Бот запущен')
 
-        await bot.send_message(chat_id=config.tg_bot.GROUP_ID, text='Бот запущен', reply_markup=begin_kb)
+        # await bot.send_message(chat_id=config.tg_bot.GROUP_ID, text='Бот запущен', reply_markup=begin_kb)
         await dp.start_polling(bot, config=config)
     finally:
         await dp.fsm.storage.close()

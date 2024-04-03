@@ -73,6 +73,8 @@ class Victorine(Base):
     msg_id: Mapped[int] = mapped_column(Integer(), nullable=True)
     results: Mapped[list['Result']] = relationship(back_populates='victorine', lazy='selectin',
                                                    cascade='save-update, merge, delete',)
+    duration_hour: Mapped[int] = mapped_column(Integer(), default=15)
+    victorine_stop_time: Mapped[datetime.datetime] = mapped_column(DateTime(), nullable=True, default=lambda: datetime.datetime.now() + datetime.timedelta(hours=15))
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.id}. {self.name}))'

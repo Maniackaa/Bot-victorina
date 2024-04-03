@@ -1,3 +1,5 @@
+import datetime
+
 from aiogram import Router
 from aiogram.types import User, CallbackQuery, FSInputFile
 from aiogram_dialog import Dialog, Window, DialogManager
@@ -79,19 +81,28 @@ async def launch_victorine_click(callback: CallbackQuery, button: Button,  dialo
         text = victorine.description
         msg = await callback.bot.send_photo(chat_id=config.tg_bot.GROUP_ID, photo=image, caption=text, reply_markup=begin_kb)
         victorine.set('is_active', 1)
+        victorine.set('victorine_stop_time', datetime.datetime.now() + datetime.timedelta(victorine.duration_hour))
         victorine.set('msg_id', msg.message_id)
     else:
         await callback.message.answer('Нет изображения в викторине')
+
+
+async def stop_victorine(bot, victorine):
+    try:
+        victorine.set('is_active', 0)
+        msg_id = victorine.msg_id
+        if msg_id:
+            await bot.edit_message_reply_markup(chat_id=config.tg_bot.GROUP_ID, message_id=msg_id,
+                                                reply_markup=None)
+    except Exception as err:
+        logger.error(err)
 
 
 async def stop_victorine_click(callback: CallbackQuery, button: Button,  dialog_manager: DialogManager):
     data = dialog_manager.dialog_data
     logger.debug(f'stop_victorine_click', callback=callback.data, dialog_data=data)
     victorine = data.get('victorine')
-    victorine.set('is_active', 0)
-    msg_id = victorine.msg_id
-    if msg_id:
-        await callback.bot.edit_message_reply_markup(chat_id=config.tg_bot.GROUP_ID, message_id=msg_id, reply_markup=None)
+    await stop_victorine(callback.bot, victorine)
     await callback.message.answer('Викторина остановлена')
 
 

@@ -13,7 +13,8 @@ class PollSG(StatesGroup):
 class PollManageSG(StatesGroup):
     start = State()
     create_victorine = State()
-    create_voctorine_new_name = State()
+    create_victorine_new_name = State()
+    victorine_duration = State()
     victorine_edit = State()
     question_edit = State()
     add_image = State()
@@ -24,6 +25,7 @@ class PollManageSG(StatesGroup):
     add_answer2 = State()
     victorine_rename = State()
     victorine_description = State()
+    victorine_edit_description = State()
 
 
 class LaunchVictorineSG(StatesGroup):
